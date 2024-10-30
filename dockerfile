@@ -7,7 +7,7 @@ RUN apt-get install -y nodejs
 
 WORKDIR /app
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install -r requirements.txt 
 RUN pip install gunicorn
 
 COPY . .
