@@ -45,13 +45,13 @@ class VideoSearchView(ListView):
         Search Twelve Labs for videos matching the query
         """
         query = self.request.GET.get("query", None)
-
-        results = TWELVE_LABS_CLIENT.search.query(
-            TWELVE_LABS_INDEX_ID,
-            query,
-            ["visual", "conversation", "text_in_video", "logo"],
-            group_by="video",
-            threshold="medium"
+        
+results = TWELVE_LABS_CLIENT.search.query(
+    index_id=TWELVE_LABS_INDEX_ID,  # Thêm index_id=
+    query=query,                    # Thêm query=
+    tasks=["visual", "conversation", "text_in_video", "logo"],  # Thêm tasks=
+    group_by="video",
+)
         )
 
         # Search results may be in multiple pages, so we need to loop until we're done retrieving them
