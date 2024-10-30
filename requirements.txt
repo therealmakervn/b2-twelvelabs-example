@@ -8,3 +8,4 @@ twelvelabs==0.2.7
 huey==2.5.0
 huey-django-orm==23.12.10.2
 pytransloadit==1.0.0
+gunicorn
