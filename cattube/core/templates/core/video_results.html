@@ -2,54 +2,29 @@
 {% load static %}
 
 {% block content %}
-{% if user.is_authenticated %}
-    <a href="/upload">Upload a video</a>
-    / <a href="{% url 'logout' %}">Log out</a>
-    <!-- 'Delete all' is useful for testing! -->
-    <!-- / <a href="/videos/delete_all">Delete all</a> -->
-{% else %}
-    <a href="{% url 'login' %}">Log in</a>
-{% endif %}
-    <hr>
-    <div id="grid">
-        {% for result in object_list %}
-            <div class="video" data-video="{{ result.video.video }}">
-                <div class="thumbnail" data-status="">
-                    <form id="form-id-{{ forloop.counter }}" action="{% url 'result' %}" method="post">
-                        {% csrf_token %}
-                        <input type="hidden" name="id" value="{{ result.video.id }}">
-                        <input type="hidden" name="clips" value="{{ result.clips }}">
-                        <input type="hidden" name="query" value="{{ query }}">
-                        <a onclick="document.querySelector('#form-id-{{ forloop.counter }}').submit();">
-                            <img class="thumbnail" src="{{ result.video.thumbnail.url }}"><br>
-                        </a>
-                    </form>
-                </div>
-                <b title="{{ result.video.video }}">{{ result.video.title }}</b><br>
-                {{ result.clip_count }} clip{% if result.clip_count > 1 %}s{% endif %}
+    <div class="search-results">
+        <h2>Search Results for "{{ query }}"</h2>
+        
+        {% if object_list %}
+            <div class="video-grid">
+                {% for result in object_list %}
+                    <div class="video-item" onclick="window.location.href='/videos/{{ result.video.id }}'">
+                        <div class="thumbnail">
+                            {% if result.video.thumbnail %}
+                                <img src="{{ result.video.thumbnail.url }}" alt="{{ result.video.title }}">
+                            {% else %}
+                                <div class="no-thumbnail">No Preview</div>
+                            {% endif %}
+                        </div>
+                        <div class="video-info">
+                            <h3>{{ result.video.title }}</h3>
+                            <p>Found in {{ result.clip_count }} clip(s)</p>
+                        </div>
+                    </div>
+                {% endfor %}
             </div>
-        {% empty %}
-            <div>
-                <p>No videos found</p>
-            </div>
-        {% endfor %}
-    </div>
-    <hr>
-    <div class="pagination">
-        <span class="step-links">
-            {% if page_obj.has_previous %}
-                <a href="?page=1&query={{ query }}">&laquo; first</a>
-                <a href="?page={{ page_obj.previous_page_number }}&query={{ query }}">previous</a>
-            {% endif %}
-
-            <span class="current">
-                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
-            </span>
-
-            {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}&query={{ query }}">next</a>
-                <a href="?page={{ page_obj.paginator.num_pages }}&query={{ query }}">last &raquo;</a>
-            {% endif %}
-        </span>
+        {% else %}
+            <p>No results found for "{{ query }}"</p>
+        {% endif %}
     </div>
 {% endblock %}

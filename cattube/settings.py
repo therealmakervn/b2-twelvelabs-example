@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 # Never put credentials in your code!
 from dotenv import load_dotenv
@@ -7,7 +8,7 @@ from twelvelabs import TwelveLabs
 load_dotenv()
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
@@ -32,14 +33,14 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # Application definition
 
 INSTALLED_APPS = [
+    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
+    'rest_framework',
     'storages',
-
     'cattube.core',
 
     'huey.contrib.djhuey',
@@ -104,7 +105,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'cattube/static'),
+    os.path.join(BASE_DIR, 'cattube', 'static'),
 ]
 
 LOGIN_URL = 'login'
@@ -126,30 +127,8 @@ STATIC_STORAGE_BUCKET_NAME = os.environ['STATIC_STORAGE_BUCKET_NAME']
 
 STATIC_URL = f'https://{STATIC_STORAGE_BUCKET_NAME}.s3.{STATIC_S3_REGION_NAME}.backblazeb2.com/'
 
-STORAGES = {
-    "default": {
-        "BACKEND": "cattube.storage.CachedS3Storage",
-        "OPTIONS": {
-            "access_key": os.environ['DEFAULT_ACCESS_KEY_ID'],
-            "secret_key": os.environ['DEFAULT_SECRET_ACCESS_KEY'],
-            "endpoint_url": os.environ['DEFAULT_S3_ENDPOINT_URL'],
-            "region_name": os.environ['DEFAULT_S3_REGION_NAME'],
-            "bucket_name": os.environ['DEFAULT_STORAGE_BUCKET_NAME'],
-            "location": os.environ['DEFAULT_STORAGE_LOCATION'],
-        },
-    },
-    "staticfiles": {
-        "BACKEND": "cattube.storage.CachedS3Storage",
-        "OPTIONS": {
-            "access_key": os.environ['STATIC_ACCESS_KEY_ID'],
-            "secret_key": os.environ['STATIC_SECRET_ACCESS_KEY'],
-            "endpoint_url": os.environ['STATIC_S3_ENDPOINT_URL'],
-            "region_name": os.environ['STATIC_S3_REGION_NAME'],
-            "bucket_name": os.environ['STATIC_STORAGE_BUCKET_NAME'],
-            "location": os.environ['STATIC_STORAGE_LOCATION'],
-        },
-    },
-}
+# Tạm thời comment hoặc xóa phần STORAGES configuration
+# STORAGES = {...}
 
 TRANSLOADIT_KEY = os.environ['TRANSLOADIT_KEY']
 TRANSLOADIT_SECRET = os.environ['TRANSLOADIT_SECRET']
@@ -171,3 +150,29 @@ TWELVE_LABS_INDEX_ID = os.environ['TWELVE_LABS_INDEX_ID']
 TWELVE_LABS_POLL_INTERVAL = 1
 
 TWELVE_LABS_CLIENT = TwelveLabs(api_key=os.environ['TWELVE_LABS_API_KEY'])
+
+# Thêm cấu hình static files
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Thêm vào cuối file
+print("STATIC_URL:", STATIC_URL)
+print("STATIC_ROOT:", STATIC_ROOT)
+print("STATICFILES_DIRS:", STATICFILES_DIRS)
+
+# Thêm vào cuối file settings.py
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media1')
+
+# File storage
+DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+
+# Cập nhật STATICFILES_DIRS nếu chưa có
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'cattube/static'),
+]
+
+# Thêm vào cuối file
+print("\nTWELVE LABS CONFIG:")
+print(f"INDEX_ID: {TWELVE_LABS_INDEX_ID}")
+print(f"API_KEY: {os.environ.get('TWELVE_LABS_API_KEY')[:5]}...")  # Chỉ in 5 ký tự đầu

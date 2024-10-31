@@ -4,43 +4,32 @@
     <meta charset="utf-8">
     <title>CatTube</title>
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'apple-touch-icon.png' %}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'favicon-32x32.png' %}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'favicon-16x16.png' %}">
-    <link rel="manifest" href="{% static 'site.webmanifest' %}">
 </head>
 <body>
-{% csrf_token %}
-<div class="container">
+    {% csrf_token %}
     <header>
-        <h1><a class="logo" href="/">😺CatTube</a></h1>
-        <p>Backblaze B2 | Twelve Labs Video Understanding Example</p>
-        <p>
-            <form action="/search" method="get">
-                <input type="text" id="query" name="query" value="{{ query }}" placeholder="Search" />
-                <button type="submit">🔎</button>
-            </form>
-        </p>
-        <hr>
+        <nav>
+            <a href="{% url 'home' %}" class="logo">
+                CatTube
+            </a>
+            <div class="search">
+                <form action="{% url 'search' %}" method="get">
+                    <input type="text" name="q" placeholder="Search...">
+                    <button type="submit">Search</button>
+                </form>
+            </div>
+            <div class="auth">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'upload' %}">Upload</a>
+                    <a href="{% url 'logout' %}">Logout</a>
+                {% else %}
+                    <a href="{% url 'login' %}">Login</a>
+                {% endif %}
+            </div>
+        </nav>
     </header>
     <main>
-        {% block content %}
-        {% endblock %}
+        {% block content %}{% endblock %}
     </main>
-    <footer>
-        <hr>
-        <h2>Powered by:</h2>
-        <div class="logo-strip">
-            <a href="https://www.backblaze.com/b2">
-                <img src="{% static 'images/horizontal-red-navy.png' %}"/>
-            </a>
-            <span></span>
-            <a href="https://www.twelvelabs.io/">
-                <img src="{% static 'images/twelve_labs.png' %}"/>
-            </a>
-        </div>
-    </footer>
-</div>
-<script src="{% static 'js/app.js' %}"></script>
 </body>
 </html>

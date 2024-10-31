@@ -41,51 +41,61 @@ class VideoSearchView(ListView):
     template_name = "core/video_results.html"
 
     def get_queryset(self):
-        """
-        Search Twelve Labs for videos matching the query
-        """
-        query = self.request.GET.get("query", None)
+        query = self.request.GET.get("q")
         
-results = TWELVE_LABS_CLIENT.search.query(
-    index_id=TWELVE_LABS_INDEX_ID,  # Thêm index_id=
-    query=query,                    # Thêm query=
-    tasks=["visual", "conversation", "text_in_video", "logo"],  # Thêm tasks=
-    group_by="video",
-)
-        )
-
-        # Search results may be in multiple pages, so we need to loop until we're done retrieving them
-        search_data = results.data
-        print(f"First page's data: {search_data}")
-
-        search_results = []
-        while True:
-            # Do a database query to get the videos for each page of results
-            video_ids = [group.id for group in search_data]
-            videos = Video.objects.filter(video_id__in=video_ids)
-            for group in search_data:
+        if not query:
+            return []
+        
+        print("\n=== DEBUG INFO ===")
+        print(f"Query: {query}")
+        
+        try:
+            videos = Video.objects.filter(status='Ready')
+            print(f"Videos in DB: {videos.count()}")
+            for v in videos:
+                print(f"- {v.title} (ID: {v.id}, Status: {v.status})")
+            
+            options = {
+                "index_id": TWELVE_LABS_INDEX_ID,
+                "tasks": ["visual", "conversation", "text_in_video", "logo"],
+                "group_by": "video"
+            }
+            
+            print(f"\nTwelve Labs Config:")
+            print(f"Index ID: {TWELVE_LABS_INDEX_ID}")
+            print(f"API Key: {TWELVE_LABS_CLIENT.api_key[:5]}...")
+            print(f"Options: {options}")
+            
+            results = TWELVE_LABS_CLIENT.search.query(
+                query=query,
+                options=options
+            )
+            
+            print(f"\nSearch Results:")
+            print(f"Raw response: {results}")
+            print("=== END DEBUG ===\n")
+            
+            search_results = []
+            for result in results.data:
                 try:
-                    search_results.append(SearchResult(video=videos.get(video_id__exact=group.id),
-                                                       clip_count=len(group.clips),
-                                                       clips=group.clips.model_dump_json()))
-                except self.model.DoesNotExist:
-                    # There is a video in Twelve Labs, but no corresponding row in the database.
-                    # Just report it and carry on.
-                    print(f'Can\'t find match for video_id {group.id}')
-
-            # Is there another page?
-            try:
-                search_data = next(results)
-                print(f"Next page's data: {search_data}")
-            except StopIteration:
-                print("There is no next page in search result")
-                break
-
-        return search_results
+                    video = videos.get(video_id=result.id)
+                    search_results.append(SearchResult(
+                        video=video,
+                        clips=result.clips,
+                        clip_count=len(result.clips)
+                    ))
+                except Video.DoesNotExist:
+                    print(f"Video not found: {result.id}")
+            
+            return search_results
+            
+        except Exception as e:
+            print(f"Search error: {str(e)}")
+            return []
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['query'] = self.request.GET.get("query", None)
+        context['query'] = self.request.GET.get("q", "")
         return context
 
 

@@ -2,32 +2,25 @@
 {% load static %}
 
 {% block content %}
-{% if user.is_authenticated %}
-    <a href="/upload">Upload a video</a>
-    / <a href="{% url 'logout' %}">Log out</a>
-    <!-- 'Delete all' is useful for testing! -->
-    <!-- / <a href="/videos/delete_all">Delete all</a> -->
-{% else %}
-    <a href="{% url 'login' %}">Log in</a>
-{% endif %}
+    {% if user.is_authenticated %}
+        <a href="/upload">Upload a video</a>
+        / <a href="{% url 'logout' %}">Log out</a>
+    {% else %}
+        <a href="{% url 'login' %}">Log in</a>
+    {% endif %}
     <hr>
     <div id="grid">
         {% for video in object_list %}
-            <div class="video" data-videoid="{{ video.id }}">
-                {% if video.status == "Ready" %}
-                    <div class="thumbnail" data-status="">
-                {% else %}
-                    <div class="thumbnail" data-status="{{ video.status }}">
-                {% endif %}
-                        <a href="{% url 'watch' video.id %}">
-                            {% if video.thumbnail %}
-                                <img class="thumbnail" src="{{ video.thumbnail.url }}"><br>
-                            {% else %}
-                                <img class="thumbnail" src="{% static 'images/whitenoise320x180.png' %}"><br>
-                            {% endif %}
-                        </a>
-                        <input type="checkbox" onclick="checkboxClicked({{ page_obj.paginator.object_list|length }})"/>
-                    </div>
+            <div class="video" data-id="{{ video.id }}">
+                <div class="thumbnail">
+                    <input type="checkbox" onclick="checkboxClicked({{ page_obj.paginator.object_list|length }})"/>
+                    {% if video.thumbnail %}
+                        <img src="{{ video.thumbnail.url }}" alt="{{ video.title }}">
+                    {% else %}
+                        <!-- Hiển thị ảnh mặc định khi không có thumbnail -->
+                        <div class="no-thumbnail">No Preview</div>
+                    {% endif %}
+                </div>
                 <b title="{{ video.video }}">{{ video.title }}</b><br>
                 {{ video.user.username }}<br>
                 {{ video.uploaded_at }}
@@ -36,13 +29,19 @@
             <div>
                 {% if user.is_authenticated %}
                     <p>No videos - why not <a href="/upload">upload</a> one?</p>
-                {%  else  %}
+                {% else %}
                     <p>No videos - <a href="{% url 'login' %}">log in</a> and upload one!</p>
                 {% endif %}
             </div>
         {% endfor %}
     </div>
     <hr>
+    <div class="actions">
+        <button id="select-all">Select All</button>
+        <button id="unselect-all">Unselect All</button>
+        <button id="delete-selected">Delete</button>
+        <button id="index-button" onclick="indexVideos()">Index</button>
+    </div>
     <div class="pagination">
         <span class="step-links">
             {% if page_obj.has_previous %}
@@ -52,7 +51,6 @@
 
             <span class="current">
                 Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
-                Showing {{ page_obj.paginator.per_page }} of {{ page_obj.paginator.object_list|length }} videos.
             </span>
 
             {% if page_obj.has_next %}
@@ -61,31 +59,75 @@
             {% endif %}
         </span>
     </div>
-    {% if user.is_authenticated %}
-        <div class="buttonbar">
-            <form method="POST" onsubmit="deleteSelectedVideos(); return false;">
-                {% csrf_token %}
-                <button id="select-page" type="button" onclick="selectPage(true)" disabled>Select All</button>
-                <button id="unselect-page" type="button" onclick="selectPage(false)" disabled>Unselect All</button>
-                <button id="delete" type="submit" onclick="return confirm('Are you sure do you want to delete the selected video(s)?')" disabled>
-                    Delete
-                </button>
-                <button id="index" type="button" onclick="indexSelectedVideos()" disabled>Index</button>
-            </form>
-        </div>
-    {% endif %}
-    <div class="selection">
-        <span id="selection-text">&nbsp;</span>
-    </div>
-    <script>
-        window.onload = () => {
-          document.querySelector("#select-page").disabled = (document.querySelectorAll("input[type=checkbox]").length === 0);
 
-          const indexing = document.querySelectorAll('div.thumbnail:not([data-status=""]):not([data-status="Ready"])');
-          if (indexing.length > 0) {
-            const tasks = Array.from(indexing, thumbnail => { return { id: thumbnail.parentElement.dataset.videoid} })
-            listenForStatusUpdates(tasks);
-          }
-        };
+    <script>
+        function indexVideos() {
+            const selectedVideos = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
+                .map(checkbox => checkbox.closest('.video').dataset.id);
+            
+            if (selectedVideos.length === 0) {
+                alert('Please select videos to index');
+                return;
+            }
+
+            fetch('/api/videos/index', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({
+                    videos: selectedVideos,
+                    selectedAll: false
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                alert('Indexing started');
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error starting index');
+            });
+        }
+
+        // Add click handler to Index button
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelector('#index-button').addEventListener('click', indexVideos);
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Select All button
+            document.getElementById('select-all').addEventListener('click', function() {
+                document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+            });
+
+            // Unselect All button
+            document.getElementById('unselect-all').addEventListener('click', function() {
+                document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            });
+
+            // Delete button
+            document.getElementById('delete-selected').addEventListener('click', function() {
+                const selectedVideos = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
+                    .map(cb => cb.closest('.video').dataset.id);
+                if (selectedVideos.length > 0) {
+                    if (confirm('Are you sure you want to delete selected videos?')) {
+                        deleteSelectedVideos();
+                    }
+                }
+            });
+
+            // Index button
+            document.getElementById('index-button').addEventListener('click', function() {
+                const selectedVideos = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
+                    .map(cb => cb.closest('.video').dataset.id);
+                if (selectedVideos.length > 0) {
+                    indexVideos();
+                }
+            });
+        });
     </script>
 {% endblock %}
